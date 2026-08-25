@@ -12,6 +12,8 @@ set -euo pipefail
 UPSTREAM_URL="https://github.com/lbjlaq/Antigravity-Manager.git"
 BRANCH="main"
 WORKFLOW="docker-build.yml"
+GIT_NAME="${GIT_AUTHOR_NAME:-disaeye}"
+GIT_EMAIL="${GIT_AUTHOR_EMAIL:-disaeye@users.noreply.github.com}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
