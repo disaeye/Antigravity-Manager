@@ -63,7 +63,7 @@ elif [ "$AHEAD" = "0" ]; then
     git merge --ff-only "upstream/$BRANCH"
 else
     log "存在本地独有提交 (如 CI 配置)，rebase 到 upstream/$BRANCH 之上..."
-    git rebase "upstream/$BRANCH"
+    git -c user.name="$GIT_NAME" -c user.email="$GIT_EMAIL" rebase "upstream/$BRANCH"
     NEED_FORCE_PUSH=1
 fi
 
