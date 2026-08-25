@@ -77,7 +77,8 @@ else
 fi
 
 log "触发 GitHub Actions 构建 Docker 镜像..."
-gh workflow run "$WORKFLOW" --ref "$BRANCH"
+gh workflow run "$WORKFLOW" --repo "$ORIGIN_REPO" --ref "$BRANCH"
 
-RUN_URL=$(gh run list --workflow="$WORKFLOW" --limit 1 --json url --jq '.[0].url')
+sleep 3
+RUN_URL=$(gh run list --workflow="$WORKFLOW" --repo "$ORIGIN_REPO" --limit 1 --json url --jq '.[0].url')
 log "完成! 构建进度: $RUN_URL"
