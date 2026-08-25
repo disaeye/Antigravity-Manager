@@ -42,7 +42,10 @@ if [ "$UPSTREAM_SHA" = "$BASE_SHA" ]; then
     exit 0
 fi
 
-log "上游有新提交: ${LOCAL_SHA:0:7} -> ${UPSTREAM_SHA:0:7}"
+AHEAD=$(git rev-list --count "upstream/$BRANCH..$BRANCH")
+BEHIND=$(git rev-list --count "$BRANCH..upstream/$BRANCH")
+
+log "上游有新提交: ${LOCAL_SHA:0:7} -> ${UPSTREAM_SHA:0:7} (落后 $BEHIND 个提交, 本地独有 $AHEAD 个提交)"
 
 if [ "$(git status --porcelain)" != "" ]; then
     log "错误: 工作区有未提交的改动，请先处理后再同步。"
@@ -51,20 +54,25 @@ fi
 
 git checkout "$BRANCH"
 
+NEED_FORCE_PUSH=0
 if [ "$FORCE" = "1" ]; then
     log "--force 模式: 强制以 upstream/$BRANCH 覆盖本地..."
     git reset --hard "upstream/$BRANCH"
+elif [ "$AHEAD" = "0" ]; then
+    log "无本地独有提交，直接快进合并 upstream/$BRANCH ..."
+    git merge --ff-only "upstream/$BRANCH"
 else
-    log "快进合并 upstream/$BRANCH ..."
-    if ! git merge --ff-only "upstream/$BRANCH"; then
-        log "错误: 本地与上游历史分叉，无法快进合并。"
-        log "如确认放弃本地提交，可运行: $0 --force"
-        exit 1
-    fi
+    log "存在本地独有提交 (如 CI 配置)，rebase 到 upstream/$BRANCH 之上..."
+    git rebase "upstream/$BRANCH"
+    NEED_FORCE_PUSH=1
 fi
 
 log "推送到 origin/$BRANCH ..."
-git push origin "$BRANCH"
+if [ "$NEED_FORCE_PUSH" = "1" ]; then
+    git push --force-with-lease origin "$BRANCH"
+else
+    git push origin "$BRANCH"
+fi
 
 log "触发 GitHub Actions 构建 Docker 镜像..."
 gh workflow run "$WORKFLOW" --ref "$BRANCH"
