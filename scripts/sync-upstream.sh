@@ -10,6 +10,7 @@
 set -euo pipefail
 
 UPSTREAM_URL="https://github.com/lbjlaq/Antigravity-Manager.git"
+ORIGIN_REPO="disaeye/Antigravity-Manager"
 BRANCH="main"
 WORKFLOW="docker-build.yml"
 GIT_NAME="${GIT_AUTHOR_NAME:-disaeye}"
@@ -34,20 +35,23 @@ fi
 
 log "拉取上游 $BRANCH 分支..."
 git fetch upstream "$BRANCH"
+git fetch origin "$BRANCH"
 
 LOCAL_SHA=$(git rev-parse "$BRANCH")
 UPSTREAM_SHA=$(git rev-parse "upstream/$BRANCH")
-BASE_SHA=$(git merge-base "$BRANCH" "upstream/$BRANCH")
-
-if [ "$UPSTREAM_SHA" = "$BASE_SHA" ]; then
-    log "本地已是最新 ($LOCAL_SHA)，无需同步，也不触发构建。"
-    exit 0
-fi
 
 AHEAD=$(git rev-list --count "upstream/$BRANCH..$BRANCH")
 BEHIND=$(git rev-list --count "$BRANCH..upstream/$BRANCH")
+UNPUSHED=$(git rev-list --count "origin/$BRANCH..$BRANCH")
 
-log "上游有新提交: ${LOCAL_SHA:0:7} -> ${UPSTREAM_SHA:0:7} (落后 $BEHIND 个提交, 本地独有 $AHEAD 个提交)"
+if [ "$BEHIND" = "0" ] && [ "$UNPUSHED" = "0" ]; then
+    log "已是最新且无未推送提交 ($LOCAL_SHA)，不触发构建。"
+    exit 0
+fi
+
+[ "$BEHIND" != "0" ] && log "上游有新提交: ${UPSTREAM_SHA:0:7} (落后 $BEHIND 个提交)"
+[ "$UNPUSHED" != "0" ] && log "本地有 $UNPUSHED 个未推送提交"
+[ "$AHEAD" != "0" ] && log "本地独有 $AHEAD 个提交 (如 CI 配置)"
 
 if [ "$(git status --porcelain)" != "" ]; then
     log "错误: 工作区有未提交的改动，请先处理后再同步。"
@@ -60,6 +64,8 @@ NEED_FORCE_PUSH=0
 if [ "$FORCE" = "1" ]; then
     log "--force 模式: 强制以 upstream/$BRANCH 覆盖本地..."
     git reset --hard "upstream/$BRANCH"
+elif [ "$BEHIND" = "0" ]; then
+    log "上游无新提交，跳过合并。"
 elif [ "$AHEAD" = "0" ]; then
     log "无本地独有提交，直接快进合并 upstream/$BRANCH ..."
     git merge --ff-only "upstream/$BRANCH"
