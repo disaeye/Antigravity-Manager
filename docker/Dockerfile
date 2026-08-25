@@ -83,8 +83,8 @@ WORKDIR /app/src-tauri
 RUN --mount=type=cache,target=/root/.cargo/registry \
     --mount=type=cache,target=/root/.cargo/git \
     --mount=type=cache,target=/app/src-tauri/target \
-    cargo build --release --bin antigravity_tools && \
-    cp target/release/antigravity_tools /tmp/antigravity_tools
+    cargo build --release --bin antigravity-tools && \
+    cp target/release/antigravity-tools /tmp/antigravity_tools
 
 # --- Final Runtime Stage ---
 FROM debian:bookworm-slim
