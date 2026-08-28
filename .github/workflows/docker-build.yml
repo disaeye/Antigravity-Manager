@@ -1,6 +1,11 @@
 name: Docker Build & Publish
 
 on:
+  push:
+    branches:
+      - main
+      - 'feat/**'
+      - 'fix/**'
   workflow_dispatch:
 
 env:
